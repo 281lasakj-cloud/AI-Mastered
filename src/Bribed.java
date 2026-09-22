@@ -32,46 +32,24 @@ public class Bribed extends CellAI {
 
         int myID = getID();
         int oppID = findOpp(grid);
-
-        int myCells = 0;
-        int oppCells = 0;
-        int deadCells = 0;
+        int bestScore = Integer.MIN_VALUE;
+        Location bestMove = new Location(0, 0);
 
         for(int r = 0; r < grid.getRows(); r++) {
             for(int c = 0; c < grid.getCols(); c++) {
-                int cell = grid.getCell(r, c);
+                int score = evaluateMove(grid, r, c, myID, oppID);
 
-                if(cell == -1)
-                    deadCells++;
-                else if(cell == myID)
-                    myCells++;
-                else if(cell == oppID)
-                    oppCells++;
-            }
-        }
-
-        for (int r = 0; r < grid.getRows(); r++) {
-
-            for (int c = 0; c < grid.getCols(); c++) {
-
-                if (grid.getCell(r, c) == myID) {
-
-                    int neighbors =
-                        GridFunctions.getNeighbors(r, c, grid);
-
-                    System.out.println(
-                        "My cell at (" + r + ", " + c + ")" + " has " + neighbors + " living neighbors."
-                    );
-
-                    return new Location(r, c);
+                if(score > bestScore) {
+                    bestScore = score;
+                    bestMove = new Location(r, c);
                 }
             }
         }
-
-        System.out.println("My Cells: " + myCells + " Opp Cells: " + oppCells + " Dead Cells: " + deadCells);   
+        
+        System.out.println("I chose (" + bestMove.getRow() + ", " + bestMove.getCol() + ") with a score of " + bestScore);   
         
 
-        return new Location(0,0);
+        return bestMove;
     }
 
     private int findOpp(Grid g){
@@ -87,5 +65,34 @@ public class Bribed extends CellAI {
             }
         }
         return -1;
+    }
+
+    private int evaluateMove(Grid grid, int r, int c, int myID, int oppID){
+        
+        int cell = grid.getCell(r, c);
+        int neighbors = GridFunctions.getNeighbors(r, c, grid);
+        int score = 0;
+
+        if(cell == -1){
+            if(neighbors == 3){
+                score += 30;
+            } else if (neighbors == 2){
+                score += 15;
+            } else if (neighbors == 1){
+                score += 5;
+            }
+        } else if(cell == oppID){
+            if(neighbors == 2 || neighbors == 3){
+                score += 25;
+            } else if(neighbors > 3){
+                score += 5;
+            } else {
+                score += 1;
+            }
+        } else if(cell == myID){
+            //Simple logic so don't think about this yet
+            score -=5;
+        }
+        return score;
     }
 }
