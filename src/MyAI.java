@@ -12,7 +12,7 @@ public class MyAI extends CellAI {
 
     @Override
     public String getAIName() {
-        return "MyAI - CHANGE ME";
+        return "MyAI - Change Name";
     }
 
     @Override
@@ -29,6 +29,7 @@ public class MyAI extends CellAI {
          *   GridFunctions.mostCommonNeighbor -> most common neighboring AI
          *   randomInt(bound)            -> reproducible random integer
          */
+
         return new Location(randomInt(grid.getRows()), randomInt(grid.getCols()));
     }
 }
