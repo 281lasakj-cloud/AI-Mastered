@@ -31,13 +31,15 @@ public class Bribed extends CellAI {
          */
 
         int myID = getID();
+
         int oppID = findOpp(grid);
         int bestScore = Integer.MIN_VALUE;
         Location bestMove = new Location(0, 0);
 
         for(int r = 0; r < grid.getRows(); r++) {
             for(int c = 0; c < grid.getCols(); c++) {
-                int score = evaluateMove(grid, r, c, myID, oppID);
+                Grid next = application(grid, r, c);
+                int score = evaluateFuture(next, myID);
 
                 if(score > bestScore) {
                     bestScore = score;
@@ -67,32 +69,71 @@ public class Bribed extends CellAI {
         return -1;
     }
 
-    private int evaluateMove(Grid grid, int r, int c, int myID, int oppID){
-        
-        int cell = grid.getCell(r, c);
-        int neighbors = GridFunctions.getNeighbors(r, c, grid);
-        int score = 0;
+    private int evaluateFuture(Grid grid, int myID){
+        int myCells = 0; 
+        int oppCells = 0;
 
-        if(cell == -1){
-            if(neighbors == 3){
-                score += 30;
-            } else if (neighbors == 2){
-                score += 15;
-            } else if (neighbors == 1){
-                score += 5;
+        for(int r = 0; r < grid.getRows(); r++){
+            for(int c = 0; c < grid.getCols(); c++){
+                int cell = grid.getCell(r, c);
+                if(cell == myID){
+                    myCells++;
+                } else if(cell >= 0){
+                    oppCells++;
+                }
             }
-        } else if(cell == oppID){
-            if(neighbors == 2 || neighbors == 3){
-                score += 25;
-            } else if(neighbors > 3){
-                score += 5;
-            } else {
-                score += 1;
-            }
-        } else if(cell == myID){
-            //Simple logic so don't think about this yet
-            score -=5;
         }
-        return score;
+        return myCells*10 - oppCells;
+    }
+
+    private Grid application(Grid grid, int r, int c){
+        int[][] board = copyGrid(grid);
+
+        if(board[r][c] == -1){
+            board[r][c] = getID();
+        } else {
+            board[r][c] = -1;
+        }
+
+        return nextGen(new Grid(board));
+    }
+
+    private int[][] copyGrid(Grid grid){
+        int [][] board = new int[grid.getRows()][grid.getCols()];
+
+        for(int r = 0; r < grid.getRows(); r++){
+            for(int c = 0; c < grid.getCols(); c++){
+                board[r][c] = grid.getCell(r, c);
+            }
+        }
+        return board;
+    }
+
+    private Grid nextGen(Grid grid){
+        int row = grid.getRows();
+        int col = grid.getCols();
+
+        int[][] next = new int[row][col];
+
+        for(int r = 0; r < row; r++){
+            for(int c = 0; c < col; c++){
+                int currentCell = grid.getCell(r, c);
+                int neighbors = GridFunctions.getNeighbors(r, c, grid);
+                if(currentCell != -1){
+                    if(neighbors < 2 || neighbors > 3){
+                        next[r][c] = -1;
+                    } else {
+                        next[r][c] = GridFunctions.mostCommonNeighbor(r, c, grid);
+                    }
+                } else {
+                    if(neighbors == 3){
+                        next[r][c] = GridFunctions.mostCommonNeighbor(r, c, grid);
+                    } else {
+                        next[r][c] = -1;
+                    }
+                }
+            }
+        }
+            return new Grid(next);  
     }
 }
