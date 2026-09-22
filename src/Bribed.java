@@ -35,19 +35,16 @@ public class Bribed extends CellAI {
         int oppID = findOpp(grid);
         ArrayList<Location> candidate = findGoodSearch(grid);
         int bestScore = Integer.MIN_VALUE;
-        Location bestMove = new Location(0, 0);
+        Location bestMove = candidate.get(0);
 
         for(Location a : candidate){ {
-            int r = a.getRow();
-            int c = a.getCol();
 
-            Grid next = application(grid, r, c);
-            
-            int score = evaluateFuture(next, myID);
+            Grid next = application(grid, a.getRow(), a.getCol());
+            int score = bestMove(next, myID, oppID,1);
             
             if(score > bestScore) {
                 bestScore = score;
-                bestMove = new Location(r, c);
+                bestMove = a;
             }
         } 
 
@@ -101,21 +98,79 @@ public class Bribed extends CellAI {
     }
 
     private int evaluateFuture(Grid grid, int myID){
+        int oppID = findOpp(grid);
+        
         int myCells = 0; 
         int oppCells = 0;
+
+        int myS = 0;
+        int oppS = 0;
+
+        int myP = 0;
+        int oppP = 0;
 
         for(int r = 0; r < grid.getRows(); r++){
             for(int c = 0; c < grid.getCols(); c++){
                 int cell = grid.getCell(r, c);
+                int neighbors = GridFunctions.getNeighbors(r, c, grid);
                 if(cell == myID){
                     myCells++;
-                } else if(cell >= 0){
+                    if(neighbors == 2 || neighbors == 3){
+                        myS++;
+                    }
+                } else if(cell == oppID){
                     oppCells++;
+                    if(neighbors == 2 || neighbors == 3){
+                        oppS++;
+                    }
+                }
+                if(cell == -1 && neighbors == 3){
+                    int o = GridFunctions.mostCommonNeighbor(r, c, grid);
+                    if(o == myID){
+                        myP++;
+                    } else if(o == oppID){
+                        oppP++;
+                    }
                 }
             }
         }
-        int cellDiff = myCells - oppCells;
-        return cellDiff;
+        int cellScore = (myCells - oppCells) * 10;
+        int survival = (myS - oppS) * 5;
+        int potential = (myP - oppP) * 3;
+        return cellScore + survival + potential;
+    }
+
+    private int bestMove(Grid grid, int myID, int oppID, int depth){
+        if(depth == 0){
+            return evaluateFuture(grid, myID);
+        }
+
+        if(depth % 2 == 0){
+            int num = Integer.MAX_VALUE;
+
+            ArrayList<Location> move = findGoodSearch(grid);
+            for(Location m : move){
+                Grid next = applicationForOpp(grid, m.getRow(), m.getCol(), oppID);
+                int score = bestMove(next, myID, oppID, depth - 1);
+                if(score < num){
+                    num = score;
+                }
+            }
+            return num;
+        } else {
+            int num = Integer.MIN_VALUE;
+
+            ArrayList<Location> move = findGoodSearch(grid);
+            for(Location m : move){
+                Grid next = applicationForOpp(grid, m.getRow(), m.getCol(), oppID);
+                int score = bestMove(next, myID, oppID, depth - 1);
+                if(score < num){
+                    num = score;
+                }
+            }
+            return num;
+        }
+        
     }
 
     private ArrayList<Location> findGoodSearch(Grid grid){
