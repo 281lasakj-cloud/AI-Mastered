@@ -49,6 +49,25 @@ public class Bribed extends CellAI {
                     oppCells++;
             }
         }
+
+        for (int r = 0; r < grid.getRows(); r++) {
+
+            for (int c = 0; c < grid.getCols(); c++) {
+
+                if (grid.getCell(r, c) == myID) {
+
+                    int neighbors =
+                        GridFunctions.getNeighbors(r, c, grid);
+
+                    System.out.println(
+                        "My cell at (" + r + ", " + c + ")" + " has " + neighbors + " living neighbors."
+                    );
+
+                    return new Location(r, c);
+                }
+            }
+        }
+
         System.out.println("My Cells: " + myCells + " Opp Cells: " + oppCells + " Dead Cells: " + deadCells);   
         
 
