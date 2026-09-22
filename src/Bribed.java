@@ -8,6 +8,7 @@
  * Replace this comment with a short explanation of the strategy your AI uses.
  * Your final strategy must be fundamentally different from the sample AIs.
  */
+import java.util.ArrayList;
 public class Bribed extends CellAI {
 
     @Override
@@ -31,25 +32,27 @@ public class Bribed extends CellAI {
          */
 
         int myID = getID();
-
         int oppID = findOpp(grid);
+        ArrayList<Location> candidate = findGoodSearch(grid);
         int bestScore = Integer.MIN_VALUE;
         Location bestMove = new Location(0, 0);
 
-        for(int r = 0; r < grid.getRows(); r++) {
-            for(int c = 0; c < grid.getCols(); c++) {
-                Grid next = application(grid, r, c);
-                int score = evaluateFuture(next, myID);
+        for(Location a : candidate){ {
+            int r = a.getRow();
+            int c = a.getCol();
 
-                if(score > bestScore) {
-                    bestScore = score;
-                    bestMove = new Location(r, c);
-                }
+            Grid next = application(grid, r, c);
+            
+            int score = evaluateFuture(next, myID);
+            
+            if(score > bestScore) {
+                bestScore = score;
+                bestMove = new Location(r, c);
             }
+        } 
+
         }
-        
         System.out.println("I chose (" + bestMove.getRow() + ", " + bestMove.getCol() + ") with a score of " + bestScore);   
-        
 
         return bestMove;
     }
@@ -69,6 +72,34 @@ public class Bribed extends CellAI {
         return -1;
     }
 
+    private int findOppScore(Grid grid, int myID, int oppID){
+            int worst = Integer.MAX_VALUE;
+
+            for(int r = 0; r < grid.getRows(); r++){
+                for(int c = 0; c < grid.getCols(); c++){    
+                    Grid afterOpp = applicationForOpp(grid, r, c, oppID);
+
+                    int score = evaluateFuture(afterOpp, myID);
+                    if(score < worst){
+                        worst = score;
+                    }
+                }
+            }
+            return worst;
+    }
+
+    private Grid applicationForOpp(Grid grid, int r, int c, int oppID){
+        int[][] board = copyGrid(grid);
+
+        if(board[r][c] == -1){
+            board[r][c] = oppID;
+        } else {
+            board[r][c] = -1;
+        }
+
+        return nextGen(new Grid(board));
+    }
+
     private int evaluateFuture(Grid grid, int myID){
         int myCells = 0; 
         int oppCells = 0;
@@ -83,7 +114,41 @@ public class Bribed extends CellAI {
                 }
             }
         }
-        return myCells*10 - oppCells;
+        int cellDiff = myCells - oppCells;
+        return cellDiff;
+    }
+
+    private ArrayList<Location> findGoodSearch(Grid grid){
+        ArrayList<Location> candidate = new ArrayList<Location>();
+
+        boolean[][] near = new boolean[grid.getRows()][grid.getCols()];
+        
+        for(int r = 0; r < grid.getRows(); r++){
+            for(int c = 0; c < grid.getCols(); c++){
+                if(grid.getCell(r, c) == -1){
+                    continue;
+                }    
+                    for(int l = -1; l <= 1; l++){
+                        for(int ri = -1; ri <= 1; ri++){
+                            
+                            int n = r + l;
+                            int m = c + ri;
+                            
+                            if(n >= 0 && n < grid.getRows() && m >= 0 && m < grid.getCols()){
+                                near[n][m] = true;
+                            }
+                        }
+                    }
+            }
+        }
+        for(int r =0; r < grid.getRows(); r++){
+            for(int c = 0; c < grid.getCols(); c++){
+                if(near[r][c]){
+                    candidate.add(new Location(r, c));
+                }
+            }
+        }
+        return candidate;
     }
 
     private Grid application(Grid grid, int r, int c){
