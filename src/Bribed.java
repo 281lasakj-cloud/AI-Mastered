@@ -33,17 +33,18 @@ public class Bribed extends CellAI {
 
         int myID = getID();
         int oppID = findOpp(grid);
-        ArrayList<Location> candidate = limitMoves(grid, findGoodSearch(grid), myID, 12);   
-        int bestScore = Integer.MIN_VALUE;
+        ArrayList<Location> candidate = limitMoves(grid, findGoodSearch(grid), myID, oppID, 6);   
+        
         if(candidate.isEmpty()){
             return new Location(0,0);
         }
+        int bestScore = Integer.MIN_VALUE;
         Location bestMove = candidate.get(0);
 
         for(Location a : candidate){ {
 
-            Grid next = application(grid, a.getRow(), a.getCol());
-            int score = bestMove(next, myID, oppID, 2, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
+            Grid next = applicationForPlayer(grid, a.getRow(), a.getCol(), myID);
+            int score = bestMove(next, myID, oppID, 3, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
             
             if(score > bestScore) {
                 bestScore = score;
@@ -52,7 +53,6 @@ public class Bribed extends CellAI {
         } 
 
         }
-        System.out.println("I chose (" + bestMove.getRow() + ", " + bestMove.getCol() + ") with a score of " + bestScore);   
 
         return bestMove;
     }
@@ -122,9 +122,7 @@ public class Bribed extends CellAI {
         return move;
     }
 
-    private int evaluateFuture(Grid grid, int myID){
-        int oppID = findOpp(grid);
-        
+    private int evaluateFuture(Grid grid, int myID, int oppID){
         int myCells = 0; 
         int oppCells = 0;
 
@@ -167,7 +165,7 @@ public class Bribed extends CellAI {
 
     private int bestMove(Grid grid, int myID, int oppID, int depth, int alpha, int beta, boolean maximizing) {
     if(depth == 0) {
-        return evaluateFuture(grid, myID);
+        return evaluateFuture(grid, myID, oppID);
     }
     int playerID;
     if(maximizing){
@@ -176,10 +174,10 @@ public class Bribed extends CellAI {
         playerID = oppID;
     }
 
-    ArrayList<Location> moves = limitMoves(grid, findGoodSearch(grid), playerID, 12);
+    ArrayList<Location> moves = limitMoves(grid, findGoodSearch(grid), playerID, oppID, 6);
 
     if(moves.isEmpty()){
-        return evaluateFuture(grid, myID);
+        return evaluateFuture(grid, myID, oppID);
     }
 
     if(maximizing) {
@@ -274,7 +272,7 @@ public class Bribed extends CellAI {
     private Grid applicationForPlayer(Grid grid, int r, int c, int myID){
         int[][] board = copyGrid(grid);
 
-        if(board[r][c] == -1){
+        if(board[r][c] == -1){  
             board[r][c] = myID;
         } else {
             board[r][c] = -1;
@@ -283,7 +281,7 @@ public class Bribed extends CellAI {
         return nextGen(new Grid(board));
     }
 
-    private ArrayList<Location> limitMoves(Grid grid, ArrayList<Location> moves, int myID, int limit){
+    private ArrayList<Location> limitMoves(Grid grid, ArrayList<Location> moves, int myID, int oppID,int limit){
         ArrayList<Location> result = new ArrayList<Location>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
 
@@ -300,19 +298,27 @@ public class Bribed extends CellAI {
                     int n = r + l;
                     int m = c + ri;
 
-                    if(n >= 0 && n < grid.getRows() && m >= 0 && m < grid.getCols()){
-                        int cell = grid.getCell(n, m);
-                        if(cell == myID){
-                            score += 3;
-                        } else if(cell != -1){
-                            score += 2;
-                        }
+                    if(n < 0 || n >= grid.getRows() || m < 0 || m >= grid.getCols()){
+                        continue;
+                    }
+                    int cell = grid.getCell(n, m);
+                    
+                    if(cell == myID){
+                        score += 4;
+                    } else if(cell == oppID){
+                        score += 3;
                     }
                 }
             }
 
             if(grid.getCell(r, c) == -1){
-                score++;
+                score+= 2;
+            }
+
+            int neighbors = GridFunctions.getNeighbors(r, c, grid);
+
+            if(neighbors == 2 || neighbors == 3){
+                score += 5;
             }
             int index = 0;
             while(index < scores.size() && scores.get(index) >= score){
@@ -329,6 +335,58 @@ public class Bribed extends CellAI {
             return limitedResult;
         }
         return result;
+    }
+
+    private ArrayList<Location> orderOfMoves(Grid grid, ArrayList<Location> moves, int myID){
+        ArrayList<Location> orderedMoves = new ArrayList<Location>();
+        ArrayList<Integer> scores = new ArrayList<Integer>();
+
+        int oppID = findOpp(grid);
+
+        for(Location move : moves){
+            int r = move.getRow();
+            int c = move.getCol();
+            int score = 0;
+
+            for(int l = -1; l <= 1; l++){
+                for(int ri = -1; ri <= 1; ri++){
+                    if(l == 0 && ri == 0){
+                        continue;
+                    }
+                    int n = r + l;
+                    int m = c + ri;
+
+                    if(n < 0 || n >= grid.getRows() || m < 0 || m >= grid.getCols()){
+                        continue;
+                    }
+                    int cell = grid.getCell(n, m);
+                    
+                    if(cell == myID){
+                        score += 5;
+                    } else if(cell == oppID){
+                        score += 4;
+                    }
+                }
+            }
+            int neighbors = GridFunctions.getNeighbors(r, c, grid);
+
+            if(neighbors == 3){
+                score += 8;
+            } else if (neighbors == 2){
+                score += 5;
+            }
+
+            if(grid.getCell(r, c) == -1){
+                score += 2;
+            }
+            int index = 0;
+            while(index < scores.size() && score < scores.get(index)){
+                index++;
+            }
+            scores.add(index, score);
+            orderedMoves.add(index, move);
+        }
+        return orderedMoves;
     }
     
     private int[][] copyGrid(Grid grid){
