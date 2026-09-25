@@ -13,7 +13,7 @@ public class Bribed extends CellAI {
 
     @Override
     public String getAIName() {
-        return "Bribed";
+        return "Bribe";
     }
 
     @Override
