@@ -1,18 +1,19 @@
 /**
  * STUDENT FILE
  *
- * Name: ______________________________
- * AI Code Name: ______________________
+ * Name: Kuba
+ * AI Code Name: Bribed
  *
  * Strategy Description:
- * Replace this comment with a short explanation of the strategy your AI uses.
- * Your final strategy must be fundamentally different from the sample AIs.
+ * The idea is to try and get to the enemy cells and destroy them from the inside. My AI identifies enemy cells and clusters and 
+ * gives a higher score to clusters with my cells near them encouraging it to attack the opponents cells. It only searches a limited number
+ * of highest scoring moves to prevent time issues and ignores areas that are isolated. It has a small 2 generation look ahead after choosing 
+ * candidates simulating those moves and evaluates based on stability, my cells vs opponent cells, and potential for future growth.
  */
-import java.util.ArrayList;
 public class MyAI extends CellAI {
 
     private static final int MAX_Candidates = 12; //Allows to limit searches
-    private static final int Depth = 2;
+    private static final int Depth = 3;
 
     @Override
     public String getAIName() {
@@ -65,14 +66,21 @@ public class MyAI extends CellAI {
                 int n = GridFunctions.getNeighbors(r, c, grid);
 
                 double score = 0.0;
-                if (n == 2 || n == 3) 
-                    score += 50.0 + cluster.size() * 3.0;
-                else if (n == 1 || n == 4) 
-                    score += 18.0 + cluster.size();
-                else 
-                    score += 4.0;
+                if (n == 1) 
+                    score += 35.0 + cluster.size() * 2.5;
+                else if (n == 4) 
+                    score += 30.0 + cluster.size() * 2.5;
+                else if (n == 2 || n == 3)
+                    score += 40.0 + cluster.size() * 2.0;
+                else
+                    score += 5.0;
 
-                score += countAround(grid, r, c, myID) * 5.0; 
+                int myNeighbors = countAround(grid, r, c, myID);
+                int enemyNeighbors = countAround(grid, r, c, myID);
+
+                score += myNeighbors * 5.0;
+
+                score += enemyNeighbors * 6.0;
 
                 add(candidate, scores, candidateCount, l, score);
                 if (candidateCount < MAX_Candidates) candidateCount++;
@@ -153,7 +161,7 @@ public class MyAI extends CellAI {
         }
         return total;
     }
-    //Strong evaluation (hopefully compared to others)
+    
     private double structureScore(int[][] board, int myID) {
         int rows = board.length;
         int cols = board[0].length;
@@ -164,6 +172,7 @@ public class MyAI extends CellAI {
         int enemyStable = 0;
         int mySafety = 0;
         int enemySafety = 0;
+        int enemyThreat = 0;
 
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -176,26 +185,42 @@ public class MyAI extends CellAI {
 
                 if (v == myID) {
                     myCells++;
-                    if (stable) 
-                        myStable++;
-                    if (n >= 2) 
-                        mySafety++;
+                if (stable) 
+                    myStable++;
+                if (n >= 2) 
+                mySafety++;
                 } else {
                     enemyCells++;
-                    if (stable) 
-                        enemyStable++;
-                    if (n >= 2) 
-                        enemySafety++;
+                if (stable) 
+                    enemyStable++;
+                if (n >= 2) 
+                    enemySafety++;
+
+                if (n == 2 || n == 3)
+                    enemyThreat += 5;
+
+                if (n >= 2)
+                    enemyThreat += 2;
                 }
             }
         }
 
-        double score = (myCells - enemyCells) * 12.0 + (myStable - enemyStable) * 9.0 + (mySafety - enemySafety) * 3.5;
+        double score = (myCells - enemyCells) * 10.0 + (myStable - enemyStable) * 14.0 + (mySafety - enemySafety) * 5.0;
         score -= enemyCells * 2.8;
+        score -= enemyThreat * 2.0;
 
+        //When it gets dire
         if (myCells == 0) 
             score -= 9000;
-        if (enemyCells == 0 && myCells > 0) score += 7000;
+        if (enemyCells == 0 && myCells > 0) 
+            score += 7000;
+        if (myCells <= 2)
+        score -= 500;
+
+        if (enemyCells <= 2 && myCells > 0)
+        score += 500;
+        if (myCells <= 1)
+        score -= 2000;
         
         return score;
     }
